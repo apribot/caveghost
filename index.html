@@ -313,6 +313,7 @@ legit
 		// start up big timer
 		resume();
 
+
 	});
 		
 	function clone(obj) {
@@ -499,6 +500,18 @@ var cave = {
 		};
 	},
 
+	getStartPosR: function() 
+	{
+		var pos = new Array();
+		for (var x = mapWidth - 2; x >= 2; x++) {
+			if (map[x][Math.floor(mapHeight/2)] == 0) {
+				pos['x'] = x;
+				pos['y'] = Math.floor(mapHeight/2);
+				return pos;
+			}
+		};
+	},
+
 	getRandPos: function () 
 	{
 		var pos = new Array();
@@ -518,6 +531,39 @@ var cave = {
 		return ret;
 	}
 };
+
+/*
+#####################################################################################################################
+#####################################################################################################################
+#####################################################################################################################
+#####################################################################################################################
+#####################################################################################################################
+#####################################################################################################################
+
+*/
+
+var world = {
+	pos: 0,
+	mapqty: 0,
+	map: [],
+	setMap: function(ar) {
+		this.map[this.pos] = ar;
+		this.mapqty = this.map.length;
+	},
+	getMap: function(id) {
+		// default to current pos
+		id = id || this.pos;
+		return this.map[id]
+	}
+};
+
+
+
+
+
+
+
+
 
 /*
 
@@ -854,6 +900,12 @@ var score = {
 			this.y = pos['y']*blocksize;
 	  	},
 	
+		startR: function() {
+			var pos = new Array();
+			pos = cave.getStartPosR();
+			this.x = pos['x']*blocksize;
+			this.y = pos['y']*blocksize;	
+		},
 	  	draw: function() {
 	  		
 	  		// l
@@ -889,22 +941,22 @@ var score = {
 		  		(!this.goingU && !this.goingD && !this.goingL && !this.goingR) 
 		  		&& (this.inertia.speed > 0 ) 
 		  	) {
-		  		if(this.inertia.l && this.x > 1 && map[Math.ceil(this.x/blocksize)-1][Math.round(this.y/blocksize)]==0) {
+		  		if(this.inertia.l && map[Math.ceil(this.x/blocksize)-1][Math.round(this.y/blocksize)]==0) {
 	  				this.x -= this.inertia.speed;
 	  			}
 
 			  	// r
-		  		if(this.inertia.r && this.x < mapWidth*blocksize && map[Math.floor(this.x/blocksize)+1][Math.round(this.y/blocksize)]==0) {
+		  		if(this.inertia.r && map[Math.floor(this.x/blocksize)+1][Math.round(this.y/blocksize)]==0) {
 		  			this.x += this.inertia.speed;
 		  		}
 			  		
 			  	// u
-				if(this.inertia.u && this.y > 1 && map[Math.round(this.x/blocksize)][Math.round(this.y/blocksize)-1]==0) {
+				if(this.inertia.u && map[Math.round(this.x/blocksize)][Math.round(this.y/blocksize)-1]==0) {
 			  		this.y -= this.inertia.speed;
 			  	}
 
 			  	// d
-			  	if(this.inertia.d && this.y < mapHeight*blocksize && map[Math.round(this.x/blocksize)][Math.floor(this.y/blocksize)+1]==0) {
+			  	if(this.inertia.d && map[Math.round(this.x/blocksize)][Math.floor(this.y/blocksize)+1]==0) {
 			  		this.y += this.inertia.speed;
 			  	}
 		  		this.inertia.speed--;
@@ -916,7 +968,143 @@ var score = {
 		  		this.inertia.r = false;
 		  	}
 
-			context.drawImage(dude_img, this.x, this.y);
+		  	context.drawImage(dude_img, this.x, this.y);
+
+		  	// check if dude moved out of screen
+
+		  	if(this.x >= (mapWidth*blocksize) - (blocksize) ) {
+		  		// trigger screen change
+		  		
+		  		// new map?
+		  		if(world.pos >= world.mapqty - 1) {
+
+		  			// pause game real quick
+					pause();
+
+		  			// save current map
+		  			world.setMap(map);
+		  			world.pos++;
+		  			// unset stuff
+					map = [];
+					
+		  			// generate cave matrix
+					cave.RandomFillmap(); 
+					cave.MakeCaverns();
+
+					// clone up some shrooms and initialize them	
+					for (var i = 0; i < shrooms; i++) {
+						shroom_dad[i] = clone(shroom);
+						shroom_dad[i].start();
+					};
+	
+					// initialize PC
+					dude.start();
+
+					// initialize fireflies		
+					for (var i = 0; i < bugs; i++) {
+						bug_dad[i] = clone(bug);
+						bug_dad[i].start();
+					};
+
+					// check if portal should be here
+					if( world.pos == 0) {
+						portal.dead = false;
+					} else {
+						portal.dead = true;
+					}
+
+
+					// ok, let's go
+					resume();
+
+		  		} else {
+		  			// there is a map already saved to the right
+
+
+		  			// pause game real quick
+					pause();
+
+		  			// save current map
+		  			world.pos++;
+		  			// unset stuff
+					map = [];
+					
+					map = world.getMap();
+
+					// clone up some shrooms and initialize them	
+					for (var i = 0; i < shrooms; i++) {
+						shroom_dad[i] = clone(shroom);
+						shroom_dad[i].start();
+					};
+	
+					// initialize PC
+					dude.start();
+
+					// initialize fireflies		
+					for (var i = 0; i < bugs; i++) {
+						bug_dad[i] = clone(bug);
+						bug_dad[i].start();
+					};
+
+					// check if portal should be here
+					if( world.pos == 0) {
+						portal.dead = false;
+					} else {
+						portal.dead = true;
+					}
+
+
+					// ok, let's go
+					resume();
+
+		  		
+		  		}
+		  	} else if (this.x <  blocksize) {
+
+	  			// limiting (so can't go left from portal)
+	  			if(world.pos > 0) {
+
+		  			// pause game real quick
+					pause();
+
+		  			// save current map
+		  			world.pos--;
+		  			// unset stuff
+					map = [];
+					
+					map = world.getMap();
+
+					// clone up some shrooms and initialize them	
+					for (var i = 0; i < shrooms; i++) {
+						shroom_dad[i] = clone(shroom);
+						shroom_dad[i].start();
+					};
+	
+					// initialize PC
+					dude.startR();
+
+					// initialize fireflies		
+					for (var i = 0; i < bugs; i++) {
+						bug_dad[i] = clone(bug);
+						bug_dad[i].start();
+					};
+
+					// check if portal should be here
+					if( world.pos == 0) {
+						portal.dead = false;
+					} else {
+						portal.dead = true;
+					}
+
+
+					// ok, let's go
+					resume();
+				}
+
+		  	}
+
+
+			
 
 	  	},
 

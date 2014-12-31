@@ -1302,9 +1302,8 @@ CanvasRenderingContext2D.prototype.wrapText = function (text, x, y, maxWidth, li
             switch (String.fromCharCode(e.keyCode)) {
                 case 'I':
                     if (!paused) {
-                        pause();
-                        score.draw();
-
+                        setTimeout(function() { pause(); }, 100);
+                        setTimeout(function() { score.draw(); }, 500);
                     } else {
                         resume();
                     }

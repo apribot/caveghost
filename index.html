@@ -14,22 +14,10 @@
         ------------------------
 
         [nuts and bolts]
-        	- fine tune dude collision and pickup boxes
          	- create more random cave features
-         	- make cave like a path and moving off screen indexes to another cave (LoZ)
-         	- make some dialog box functions for speech and/or messages
          	- make a start screen
-         	- probably split the cave.draw into just walls and then another one for the bg pane 
-         	  so any places objects don't overlap the walls
-         	- split off player fog of war into it's own method/class so I can have more control over layers
-         	- parallax walls (layers that immitate 3rd height)
          	- add holes in floor that reveal stars/space
-         	- maybe lock player in center and move entire map instead?
-         	- add shadows if the light is obstructed? might be a horrible experience
         [conceptual]
-        	- reduce player vision, increase fireflie vision?
-        	- collect fireflies to increase player vision?
-
 
 
 
@@ -229,51 +217,6 @@
 
         // http://patorjk.com/software/taag/#p=display&f=ANSI%20Shadow&t=VARS
 
-        /*
-
-        ██╗   ██╗ █████╗ ██████╗ ███████╗
-        ██║   ██║██╔══██╗██╔══██╗██╔════╝
-        ██║   ██║███████║██████╔╝███████╗
-        ╚██╗ ██╔╝██╔══██║██╔══██╗╚════██║
-         ╚████╔╝ ██║  ██║██║  ██║███████║
-          ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
-                                         
-        */
-        var map = new Array();
-        var mapHeight = 40;
-        var mapWidth = 80;
-        var PercentAreWalls = 50;
-        var itteration = 0;
-        var maxitteration = 7;
-        var blocksize = 10;
-        var canv;
-        var context;
-        var paused = false;
-        var dude_img = new Image();
-        dude_img.src = 'ghost3.png';
-
-        var bug_img = new Image();
-        bug_img.src = 'fly.png';
-
-        var bug_dad = new Array();
-        var bugs = 5;
-
-        var shroom_img = new Image();
-        shroom_img.src = 'shroom2.png';
-
-        var shroom_dad = new Array();
-        var shrooms = 5;
-
-        var portal_img = new Image();
-        portal_img.src = 'portal2.png';
-
-        var stasis_img = new Image();
-        stasis_img.src = 'stasis.png';
-
-        var conductorInterval;
-        var degradeFirefliesInterval;
-
-        var dialogs = new Array();
 
         //dialogs['firefly'] = false;
 
@@ -321,6 +264,8 @@
             // start up big timer
             resume();
 
+            //start musics
+            bgmusic.play({loop:true});
 
         });
 
@@ -631,7 +576,7 @@ CanvasRenderingContext2D.prototype.wrapText = function (text, x, y, maxWidth, li
             y: 100,
             draw: function() {
 
-
+                blip.play();
                 // inventory box
                 
                 
@@ -691,7 +636,7 @@ CanvasRenderingContext2D.prototype.wrapText = function (text, x, y, maxWidth, li
             y: 100,
             draw: function(txt) {
 
-
+                blip.play();
                 // inventory box
                 
                 
@@ -742,7 +687,7 @@ CanvasRenderingContext2D.prototype.wrapText = function (text, x, y, maxWidth, li
                 if (Math.round(dude.x / blocksize) == this.x && Math.round(dude.y / blocksize) == this.y && !this.dead) {
                     this.dead = true;
                     score.shrooms++;
-
+                    pickupsound.play();
                     if( !dialogs['mushroom'] ) {
                         	
                         	dialogs['mushroom'] = true;
@@ -907,7 +852,7 @@ CanvasRenderingContext2D.prototype.wrapText = function (text, x, y, maxWidth, li
                         this.dead = true;
                         score.fireflies++;
                         dude.light++;
-
+                        pickupsound.play();
                         if( !dialogs['firefly'] ) {
                         	
                         	dialogs['firefly'] = true;
@@ -1264,6 +1209,111 @@ CanvasRenderingContext2D.prototype.wrapText = function (text, x, y, maxWidth, li
             }
         }
 
+/*
+
+███████╗ ██████╗ ██╗   ██╗███╗   ██╗██████╗      ██████╗ ██████╗      ██╗
+██╔════╝██╔═══██╗██║   ██║████╗  ██║██╔══██╗    ██╔═══██╗██╔══██╗     ██║
+███████╗██║   ██║██║   ██║██╔██╗ ██║██║  ██║    ██║   ██║██████╔╝     ██║
+╚════██║██║   ██║██║   ██║██║╚██╗██║██║  ██║    ██║   ██║██╔══██╗██   ██║
+███████║╚██████╔╝╚██████╔╝██║ ╚████║██████╔╝    ╚██████╔╝██████╔╝╚█████╔╝
+╚══════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═════╝      ╚═════╝ ╚═════╝  ╚════╝ 
+
+
+Adapted from Denis Ineshin's Ion.Sound because ain't nobody got time for that
+http://ionden.com/a/plugins/ion.sound/en.html
+                                                                         
+*/
+
+        Sound = function (nam) {
+            this.name = nam;
+            this.preload = "auto";
+            this.loop = false;
+            this.paused = false;
+            this.sound = null;
+            this.callback = null;
+            this.init();
+        };
+
+        Sound.prototype = {
+            init: function () {
+                this.sound = new Audio();
+                this.sound.src = this.name;
+                this.sound.load();
+                this.sound.preload = this.preload;
+                this.sound.addEventListener("ended", this._ended.bind(this), false);
+            },
+
+            play: function (obj) {
+                if (!obj) {
+                    obj = {};
+                }
+                if (obj.loop) {
+                    if (this.paused) {
+                        this._playLoop(this.loop + 1);
+                    } else {
+                        this._playLoop(obj.loop);
+                    }
+                } else {
+                    this.loop = false;
+                    this._play();
+                }
+                if (obj.onEnded && typeof obj.onEnded === "function") {
+                    this.callback = obj.onEnded;
+                }
+            },
+
+            _play: function () {
+                if (this.paused) {
+                    this.paused = false;
+                } else {
+                    try {
+                        this.sound.currentTime = 0;
+                    } catch (e) {}
+                }
+                this.sound.play();
+            },
+
+            _playLoop: function (loop) {
+                if (typeof loop === "boolean") {
+                    this.loop = 9999999;
+                    this._play();
+                } else if (typeof loop === "number") {
+                    this.loop = loop - 1;
+                    this._play();
+                }
+            },
+
+            _ended: function () {
+                if (this.loop > 0) {
+                    this.loop -= 1;
+                    this._play();
+                }
+                if (this.callback) {
+                    this.callback(this.name);
+                }
+            },
+
+            pause: function () {
+                this.paused = true;
+                this.sound.pause();
+            },
+
+            stop: function () {
+                this.loop = false;
+                this.sound.pause();
+                try {
+                    this.sound.currentTime = 0;
+                } catch (e) {}
+            },
+
+            destroy: function () {
+                this.stop();
+                this.sound.removeEventListener("ended", this._ended.bind(this), false);
+                this.sound.src = "";
+                this.sound = null;
+            }
+        };
+
         /*
 
         ██╗███╗   ██╗██████╗ ██╗   ██╗████████╗
@@ -1422,8 +1472,56 @@ CanvasRenderingContext2D.prototype.wrapText = function (text, x, y, maxWidth, li
         }
 
 
+        /*
 
+        ██╗   ██╗ █████╗ ██████╗ ███████╗
+        ██║   ██║██╔══██╗██╔══██╗██╔════╝
+        ██║   ██║███████║██████╔╝███████╗
+        ╚██╗ ██╔╝██╔══██║██╔══██╗╚════██║
+         ╚████╔╝ ██║  ██║██║  ██║███████║
+          ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝
+                                         
+        */
+        var map = new Array();
+        var mapHeight = 40;
+        var mapWidth = 80;
+        var PercentAreWalls = 50;
+        var itteration = 0;
+        var maxitteration = 7;
+        var blocksize = 10;
+        var canv;
+        var context;
+        var paused = false;
+        var dude_img = new Image();
+        dude_img.src = 'ghost3.png';
 
+        var bug_img = new Image();
+        bug_img.src = 'fly.png';
+
+        var bug_dad = new Array();
+        var bugs = 5;
+
+        var shroom_img = new Image();
+        shroom_img.src = 'shroom2.png';
+
+        var shroom_dad = new Array();
+        var shrooms = 5;
+
+        var portal_img = new Image();
+        portal_img.src = 'portal2.png';
+
+        var stasis_img = new Image();
+        stasis_img.src = 'stasis.png';
+
+        var conductorInterval;
+        var degradeFirefliesInterval;
+
+        var dialogs = new Array();
+
+        var bgmusic = new Sound('bg3.mp3');
+
+        var pickupsound = new Sound('pickup.mp3');
+        var blip = new Sound('blip.mp3');
 
 
 
